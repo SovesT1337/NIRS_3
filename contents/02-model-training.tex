@@ -150,14 +150,22 @@ kNN~--- непараметрический классификатор, не тр
 
 \subsection{Программная реализация}
 
-Классификатор реализован на языке Python~3 в виде единого скрипта \texttt{src/classifier.py}. Основные используемые библиотеки:
-\begin{itemize}
-    \item \texttt{scikit-learn}~\cite{scikit_learn}~--- базовый фреймворк: предобработка~(\textit{StandardScaler}), разбиение выборки~(\textit{StratifiedShuffleSplit}), метрики~(\textit{f1\_score}, \textit{roc\_auc\_score}), Random Forest, kNN, Stacking, RandomizedSearchCV;
-    \item \texttt{xgboost}~\cite{xgboost_paper}~--- реализация XGBoost с поддержкой весов классов;
-    \item \texttt{lightgbm}~\cite{lightgbm_paper}~--- реализация LightGBM на гистограммном методе;
-    \item \texttt{imbalanced-learn}~--- методы оверсэмплинга SMOTE~\cite{smote_paper} и ADASYN~\cite{adasyn_paper};
-    \item \texttt{shap}~\cite{shap_paper}~--- \textit{TreeExplainer} для XGBoost и \textit{PermutationExplainer} для MLP;
-    \item \texttt{numpy}~\cite{numpy_guide}, \texttt{pandas}~\cite{pandas_guide}, \texttt{matplotlib}~--- численные вычисления, работа с данными, визуализация.
-\end{itemize}
+Классификатор реализован на языке Python~3 в виде единого скрипта \texttt{src/classifier.py}. Основные используемые библиотеки: \texttt{scikit-learn}~\cite{scikit_learn}~--- базовый фреймворк машинного обучения; \texttt{xgboost}~\cite{xgboost_paper} и \texttt{lightgbm}~\cite{lightgbm_paper}~--- реализации методов градиентного бустинга; \texttt{imbalanced-learn}~--- SMOTE~\cite{smote_paper} и ADASYN~\cite{adasyn_paper}; \texttt{shap}~\cite{shap_paper}~--- интерпретируемость; \texttt{numpy}~\cite{numpy_guide}, \texttt{pandas}~\cite{pandas_guide}, \texttt{matplotlib}~--- вычисления и визуализация.
 
-Исходный код, обученные конфигурации и итоговые графики опубликованы в открытом репозитории~\cite{github_repo_nirs3}: \url{https://github.com/SovesT1337/NIRS_3}.
+Скрипт реализует сквозной конвейер из семи этапов.
+
+\textbf{Этап~1. Загрузка и предобработка данных} (\texttt{load\_data}, \texttt{remove\_correlated}). Функция \texttt{load\_data} читает датасет НИРС-02 в формате CSV~\cite{github_repo_nirs2}: выделяет числовые признаки, отбрасывая столбец адреса и целевую метку. Функция \texttt{remove\_correlated} вычисляет матрицу коэффициентов Пирсона и удаляет признаки, коррелирующие с уже выбранными более чем на~0,95,~--- итого остаётся~30 признаков из исходных~32.
+
+\textbf{Этап~2. Разбиение и оверсэмплинг} (\texttt{prepare\_splits}, \texttt{\_best\_sampler}). Датасет делится стратификованно на три непересекающихся части: обучающую~(70\%), валидационную~(15\%) и тестовую~(15\%). Вспомогательная функция \texttt{\_best\_sampler} обучает прокси-модель~(RandomForest, 50 деревьев) раздельно на SMOTE- и ADASYN-расширенных выборках и выбирает метод с лучшей взвешенной F1-мерой на валидационной выборке. Выбранный оверсэмплер применяется к обучающей выборке, расширяя её с~5\,680 до~14\,892 образцов с равным представлением каждого класса. После этого признаки стандартизируются через \texttt{StandardScaler}, причём параметры нормализации~(среднее и стандартное отклонение) вычисляются только по обучающей выборке и применяются к валидационной и тестовой без повторной подгонки.
+
+\textbf{Этап~3. Обучение моделей} (\texttt{train\_all}, \texttt{\_tune}). Функция \texttt{train\_all} последовательно обучает шесть классификаторов. Вспомогательный тюнер \texttt{\_tune} оборачивает \texttt{RandomizedSearchCV} с двухфолдовой стратификованной кросс-валидацией и метрикой \texttt{f1\_weighted}. MLP обучается с фиксированными гиперпараметрами~(три скрытых слоя 256-128-64, Adam, ранняя остановка при отсутствии прогресса за 10 эпох). Random Forest, XGBoost и LightGBM настраиваются через \texttt{\_tune} (4, 6 и 6 итераций соответственно). Stacking собирается из трёх базовых моделей~(RF, XGBoost, LightGBM) с мета-классификатором~--- логистической регрессией~--- и трёхфолдовой кросс-валидацией для формирования мета-признаков. kNN с $k=7$ используется без настройки как базовый ориентир.
+
+\textbf{Этап~4. Оценка на тестовой выборке} (\texttt{evaluate}). Для каждой модели вычисляются взвешенная F1-мера, макро-усреднённый ROC-AUC и полный отчёт~(\texttt{classification\_report}) с метриками по каждому классу. Сводная таблица результатов сохраняется в файл \texttt{output/comparison\_table.csv}.
+
+\textbf{Этап~5. Оптимизация порогов} (\texttt{optimize\_thresholds}). Для лучшей модели по каждому классу~$c$ строится ROC-кривая в постановке OvR, и по критерию Юдена~$J_c(\tau) = \text{TPR}_c(\tau) - \text{FPR}_c(\tau)$ находится оптимальный порог~$\tau_c^*$. Итоговый класс определяется как $\hat{y} = \arg\max_c (p_c(\mathbf{x}) - \tau_c^*)$, после чего пересчитывается взвешенная F1.
+
+\textbf{Этап~6. Визуализация} (\texttt{plot\_confusion\_matrix}, \texttt{plot\_roc\_curves}, \texttt{plot\_comparison\_bar}). Для каждой из шести моделей строятся нормализованная матрица ошибок~(нормировка по строкам; \texttt{normalize="true"}) и ROC-кривые в постановке OvR. Итоговая столбчатая диаграмма сравнения моделей по F1 и ROC-AUC сохраняется в \texttt{output/model\_comparison.png}.
+
+\textbf{Этап~7. SHAP-анализ} (\texttt{plot\_shap}). Для XGBoost используется \texttt{TreeExplainer}~--- точный алгоритм вычисления значений Шепли для ансамблей деревьев. Для MLP используется \texttt{PermutationExplainer} с~50 фоновыми образцами. SHAP-значения вычисляются по первым~300 объектам тестовой выборки; результат отображается как \textit{beeswarm}-диаграмма с ранжированием признаков по суммарному абсолютному вкладу.
+
+Исходный код, итоговые графики и файл метрик опубликованы в открытом репозитории~\cite{github_repo_nirs3}: \url{https://github.com/SovesT1337/NIRS_3}.
