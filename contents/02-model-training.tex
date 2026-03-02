@@ -147,3 +147,17 @@ kNN~--- непараметрический классификатор, не тр
 Оценка каждой конфигурации производится методом стратифицированной кросс-валидации~(\textit{StratifiedKFold}, $n=2$): обучающая выборка делится на два стратифицированных фолда, модель обучается на одном и оценивается на другом~--- поочерёдно; результирующий балл~--- среднее значение взвешенной F1-меры по двум фолдам. Выбирается конфигурация с наибольшим средним баллом.
 
 Число итераций поиска: для Random Forest~--- 4, для XGBoost и LightGBM~--- 6. Внешний параллелизм~(\texttt{n\_jobs=-1} в~\textit{RandomizedSearchCV}) позволяет проверять все конфигурации параллельно; внутри каждой модели используется \texttt{n\_jobs=1} для предотвращения конкурентного захвата потоков при вложенном параллелизме.
+
+\subsection{Программная реализация}
+
+Классификатор реализован на языке Python~3 в виде единого скрипта \texttt{src/classifier.py}. Основные используемые библиотеки:
+\begin{itemize}
+    \item \texttt{scikit-learn}~\cite{scikit_learn}~--- базовый фреймворк: предобработка~(\textit{StandardScaler}), разбиение выборки~(\textit{StratifiedShuffleSplit}), метрики~(\textit{f1\_score}, \textit{roc\_auc\_score}), Random Forest, kNN, Stacking, RandomizedSearchCV;
+    \item \texttt{xgboost}~\cite{xgboost_paper}~--- реализация XGBoost с поддержкой весов классов;
+    \item \texttt{lightgbm}~\cite{lightgbm_paper}~--- реализация LightGBM на гистограммном методе;
+    \item \texttt{imbalanced-learn}~--- методы оверсэмплинга SMOTE~\cite{smote_paper} и ADASYN~\cite{adasyn_paper};
+    \item \texttt{shap}~\cite{shap_paper}~--- \textit{TreeExplainer} для XGBoost и \textit{PermutationExplainer} для MLP;
+    \item \texttt{numpy}~\cite{numpy_guide}, \texttt{pandas}~\cite{pandas_guide}, \texttt{matplotlib}~--- численные вычисления, работа с данными, визуализация.
+\end{itemize}
+
+Исходный код, обученные конфигурации и итоговые графики опубликованы в открытом репозитории~\cite{github_repo_nirs3}: \url{https://github.com/SovesT1337/NIRS_3}.
