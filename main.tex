@@ -1,0 +1,52 @@
+\documentclass[research]{BMSTU-IU8}
+
+\usepackage{fontspec}
+\setmainfont{Times New Roman}
+\setromanfont{Times New Roman}
+\setsansfont{Arial}
+\setmonofont{Courier New}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{subcaption}
+\usepackage{todonotes}
+\usepackage{lipsum}
+\usepackage{tikz}
+\usepackage{pgfplots}
+
+\student{Санджиев Т. С.}
+\theme{Классификатор адресов в сети криптовалюты Bitcoin}
+\group{ИУ8-93-2024}
+
+\studentFullName{Санджиев Темирхан Санджиевич}
+\profile{20У951}
+\speciality{10.05.03 <<Информационная безопасность автоматизированных систем>>}
+\specialization{10.05.03\_03 <<Создание автоматизированных систем в защищенном исполнении>>}
+\supervisorWithDegree{профессор кафедры ИУ8 Зуев Юрий Анатольевич}
+\supervisor{Зуев Ю. А.}
+
+\addbibresource{main.bib}
+\input{contents/glossary}
+\input{contents/terms}
+
+\begin{document}
+    \maketitle
+
+    \setcounter{page}{4}
+
+    \include{contents/00-abstract}
+
+    \tableofcontents
+    \termsanddefenitions
+    \listofabbreviations
+
+    \include{contents/01-introduction}
+
+    \include{contents/02-model-training}
+    \include{contents/03-results-analysis}
+
+    \include{contents/04-conclusion}
+
+\printbibliography
+
+\end{document}

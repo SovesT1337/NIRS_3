@@ -1,0 +1,7 @@
+Модель,F1 (weighted),ROC-AUC (macro)
+MLP,0.6614,0.9124
+RandomForest,0.7653,0.9463
+XGBoost,0.7907,0.961
+LightGBM,0.783,0.9597
+Stacking,0.7872,0.9517
+kNN,0.6281,0.8769

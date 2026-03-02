@@ -1,0 +1,30 @@
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.toc
+*.xdv
+*.xdy
+*.synctex.gz
+*.acn
+*.glo
+*.glo-abr
+*.run.xml
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# Internal context
+CONTEXT.md
+
+# Standalone module documents
+module-training.tex
+module-training.pdf
